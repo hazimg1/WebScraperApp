@@ -8,23 +8,78 @@ namespace WebScraperApp.Infrastructure;
 
 public class StorageManager : IStorageManager
 {
-    public event EventHandler<ProgressValueChangedArgs>? ProgressValueChanged;
-
     private readonly ILogger<StorageManager> logger;
     private readonly IOptions<SiteSettings> settings;
+
+    public event EventHandler<ProgressValueChangedArgs>? ProgressValueChanged;
 
     public StorageManager(ILogger<StorageManager> logger, IOptions<SiteSettings> settings)
     {
         this.logger = logger;
         this.settings = settings;
     }
-    public Task SaveHtmlOnDiskAsync(Uri url, string contents)
+
+    /// <summary>
+    /// Saves the provided content items to disk.
+    /// </summary>
+    /// <param name="items">A collection of content items, where each item consists of a URL and its corresponding byte content.</param>
+    public async Task SaveOnDiskAsync(IEnumerable<(Uri url, byte[] contents)> items)
     {
-        throw new NotImplementedException();
+        int index = 0;
+        int count = items.Count();
+        foreach (var (url, contents) in items)
+        {
+            try
+            {
+                index++;
+                string fileName = Path.GetFullPath(Path.Join(settings.Value.SiteLocationOnDisk, url.AbsolutePath));
+                string? dir = Path.GetDirectoryName(fileName);
+                if (!string.IsNullOrEmpty(dir))
+                {
+                    CreateDirectoryIfNotExist(dir);
+                    await File.WriteAllBytesAsync(fileName, contents);
+                    double percent = ((double)index) / count * 100;
+                    ProgressValueChanged?.Invoke(this, new ProgressValueChangedArgs(index, percent));
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, message: "Error saving HTML content for URL: {url}", url);
+            }
+        }
     }
 
-    public Task SaveOnDiskAsync(IEnumerable<(Uri url, byte[] contents)> items)
+    /// <summary>
+    /// Saves the provided HTML content to disk for the specified URL.
+    /// </summary>
+    /// <param name="url">The URL associated with the HTML content.</param>
+    /// <param name="contents">The HTML content to be saved.</param>
+    public async Task SaveHtmlOnDiskAsync(Uri url, string contents)
     {
-        throw new NotImplementedException();
+        try
+        {
+            string fileName = Path.GetFullPath(Path.Join(settings.Value.SiteLocationOnDisk, url.AbsolutePath));
+            if (!string.IsNullOrWhiteSpace(Path.GetFileName(fileName)))
+            {
+                string? dir = Path.GetDirectoryName(fileName);
+                if (!string.IsNullOrEmpty(dir))
+                {
+                    CreateDirectoryIfNotExist(dir);
+                    await File.WriteAllTextAsync(fileName, contents);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, message: "Can not find the content of {fileName}", url);
+        }
+    }
+
+    private static void CreateDirectoryIfNotExist(string dir)
+    {
+        if (!Directory.Exists(dir))
+        {
+            Directory.CreateDirectory(dir);
+        }
     }
 }
