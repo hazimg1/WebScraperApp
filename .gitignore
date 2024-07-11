@@ -3,3 +3,6 @@
 ################################################################################
 
 /.vs
+/WebScraperApp.Common/obj
+/WebScraperApp.Core/obj
+/WebScraperApp.Infrastructure/obj
