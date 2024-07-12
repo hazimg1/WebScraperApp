@@ -25,27 +25,31 @@ public class StorageManager : IStorageManager
     /// <param name="items">A collection of content items, where each item consists of a URL and its corresponding byte content.</param>
     public async Task SaveOnDiskAsync(IEnumerable<(Uri url, byte[] contents)> items)
     {
-        int index = 0;
-        int count = items.Count();
-        foreach (var (url, contents) in items)
+        try
         {
-            try
+            foreach (var (url, contents) in items)
             {
-                index++;
                 string fileName = Path.GetFullPath(Path.Join(settings.Value.SiteLocationOnDisk, url.AbsolutePath));
                 string? dir = Path.GetDirectoryName(fileName);
+
                 if (!string.IsNullOrEmpty(dir))
                 {
                     CreateDirectoryIfNotExist(dir);
-                    await File.WriteAllBytesAsync(fileName, contents);
-                    double percent = ((double)index) / count * 100;
-                    ProgressValueChanged?.Invoke(this, new ProgressValueChangedArgs(index, percent));
+
+                    // Use FileStream to write contents to the file asynchronously
+                    using (var fileStream = new FileStream(fileName, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize: 4096, useAsync: true))
+                    {
+                        await fileStream.WriteAsync(contents, 0, contents.Length);
+                    }
+
+                    double percent = (items.ToList().IndexOf((url, contents)) + 1) / (double)items.Count() * 100;
+                    ProgressValueChanged?.Invoke(this, new ProgressValueChangedArgs(items.ToList().IndexOf((url, contents)) + 1, percent));
                 }
             }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, message: "Error saving HTML content for URL: {url}", url);
-            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, message: "Error saving content to disk.");
         }
     }
 
