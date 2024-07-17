@@ -25,9 +25,7 @@ public class StorageManager : IStorageManager
     /// <param name="items">A collection of content items, where each item consists of a URL and its corresponding byte content.</param>
     public async Task SaveOnDiskAsync(IEnumerable<(Uri url, byte[] contents)> items)
     {
-        try
-        {
-            foreach (var (url, contents) in items)
+           foreach (var (url, contents) in items)
             {
                 string fileName = Path.GetFullPath(Path.Join(settings.Value.SiteLocationOnDisk, url.AbsolutePath));
                 string? dir = Path.GetDirectoryName(fileName);
@@ -46,11 +44,6 @@ public class StorageManager : IStorageManager
                     ProgressValueChanged?.Invoke(this, new ProgressValueChangedArgs(items.ToList().IndexOf((url, contents)) + 1, percent));
                 }
             }
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, message: "Error saving content to disk.");
-        }
     }
 
     /// <summary>
