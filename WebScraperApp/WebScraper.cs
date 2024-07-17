@@ -32,11 +32,11 @@ public class WebScraper : IWebScraper
     {
         try
         {
-            var urls = await webDataCollector.GetURLsAsync();
-            var items = await webDataCollector.GetUrlContent(urls);
+            var urls = await webDataCollector.GetURLsAsync().ConfigureAwait(false); 
+            var items = await webDataCollector.GetUrlContent(urls).ConfigureAwait(false); 
             if (items != null)
             {
-                await storageManager.SaveOnDiskAsync(items);
+                await storageManager.SaveOnDiskAsync(items).ConfigureAwait(false); 
             }
             else
             {
@@ -68,7 +68,7 @@ public class WebScraper : IWebScraper
 
     private async void WebDataCollector_WebPageLoaded(object? sender, WebPageLoadedArgs e)
     {
-        await storageManager.SaveHtmlOnDiskAsync(e.Uri, e.Content);
+        await storageManager.SaveHtmlOnDiskAsync(e.Uri, e.Content).ConfigureAwait(false); 
     }
 
     private void StorageManager_ProgressValueChanged(object? sender, ProgressValueChangedArgs e)
